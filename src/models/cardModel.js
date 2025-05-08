@@ -2,35 +2,48 @@ import prisma from "../../prisma/prisma.js";
 
 class CardModel {
   // Obter todas as cartas
-  async findAll(raridade, ataque) {
+  async findAll(raridade, ataque, pagina, limite) {
+    if(Number(pagina) < 1) {
+      pagina = 1;
+    }
+
+    if(Number(limite) < 1 || Number(limite) > 100) {
+      limite = 10;
+    }
+
+    const skip = (Number(pagina) - 1) * Number(limite);
+
+
     const where = {};
 
-    if (raridade) {
-      where.rarity = raridade;
-    }
+     if (raridade) {
+        where.rarity = raridade;
+      } 
 
-    if (ataque) {
-      where.attackPoints = {
-        gte: Number(ataque),
-      };
-    }
-
-    const cartas = await prisma.card.findMany({
-      /* where: {
-        rarity: "Ultra Rare",
-      }, */
-      /* where: {
+      if (ataque) {
+        where.attackPoints = {
+          gte: Number(ataque),
+        };
+      } 
+      
+    const cards = await prisma.card.findMany({
+     /* where: {
+        rarity: Ultra Rare,
+    }*/
+     /* where: {
         attackPoints: {
-          lte: 8000, // Menor ou igual a 8000
+          lte: 8000,
         },
       }, */
 
-      /* where: {
+     /* where: {
         attackPoints: {
           gte: Number(ataque),
         },
         rarity: raridade,
       }, */
+      skip,
+      take: Number(limite),
       where,
       orderBy: {
         createdAt: "desc",
@@ -43,90 +56,84 @@ class CardModel {
             releaseYear: true,
           },
         },
-      },
+      }
     });
 
-    // console.log(cartas);
+    const total = await prisma.card.count({ where });
 
-    return cartas;
+    // console.log(cards);
+
+    return {cards, total};
   }
 
   // Obter uma carta pelo ID
   async findById(id) {
-    const carta = await prisma.card.findUnique({
+    const card = await prisma.card.findUnique({
       where: {
         id: Number(id),
       },
       include: {
         collection: true,
-      },
+      }
     });
 
-    return carta;
+    return card;
   }
 
   // Criar uma nova carta
-  async create(
-    name,
-    rarity,
-    attackPoints,
-    defensePoints,
-    imageUrl,
-    collectionId
-  ) {
-    const novaCarta = await prisma.card.create({
+  async create(name, rarity, attackPoints, defensePoints, imageUrl, collectionId) {
+    const newCard = await prisma.card.create({
       data: {
         name,
         rarity,
-        attackPoints,
+        attackPoints, 
         defensePoints,
         imageUrl,
-        collectionId: Number(collectionId),
+        collectionId: Number(collectionId), 
       },
     });
 
-    return novaCarta;
+    return newCard;
   }
 
   // Atualizar uma carta
   async update(
     id,
-    name,
-    rarity,
-    attackPoints,
-    defensePoints,
-    imageUrl,
-    collectionId
+        name,
+        rarity,
+        attackPoints, 
+        defensePoints,
+        imageUrl,
   ) {
-    const carta = await this.findById(id);
+    const card = await this.findById(id);
 
-    if (!carta) {
+    if (!card) {
       return null;
     }
 
     // Atualize a carta existente com os novos dados
-    const cartaAtualizada = await prisma.card.update({
+    const cardUpdated = await prisma.card.update({
       where: {
         id: Number(id),
       },
       data: {
-        name,
+      name,
         rarity,
         attackPoints,
         defensePoints,
         imageUrl,
         collectionId: Number(collectionId),
-      },
+      }
     });
 
-    return cartaAtualizada;
+    return cardUpdated;
   }
 
-  // Remover uma carta
+  // Remover uma coleção
   async delete(id) {
-    const carta = await this.findById(id);
+    const card = await this.findById(id);
 
-    if (!carta) {
+    if (!card) {
       return null;
     }
 
